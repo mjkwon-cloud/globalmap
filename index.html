@@ -561,29 +561,34 @@ function renderMap() {
       }
     });
 
-    const labelDiv = document.createElement('div');
-    labelDiv.className = 'glabel';
-    labelDiv.innerHTML = `
-      <span class="name">${country}</span>
-      <span class="big">${channelSet.size}</span>
-      <span class="pct">${brandSet.size} 브랜드</span>
-    `;
+    // 각 라벨마다 새로운 DOM 요소 생성 (클로저 문제 방지)
+    const createLabel = (labelCountry, labelCoords, channels, brands) => {
+      const labelDiv = document.createElement('div');
+      labelDiv.className = 'glabel';
+      labelDiv.innerHTML = `
+        <span class="name">${labelCountry}</span>
+        <span class="big">${channels}</span>
+        <span class="pct">${brands} 브랜드</span>
+      `;
 
-    const label = new google.maps.OverlayView();
-    label.onAdd = function() {
-      const pane = this.getPanes().markerLayer;
-      pane.appendChild(labelDiv);
-    };
-    label.draw = function() {
-      const projection = this.getProjection();
-      const position = projection.fromLatLngToDivPixel(new google.maps.LatLng(coords.lat, coords.lng));
-      labelDiv.style.left = position.x + 'px';
-      labelDiv.style.top = position.y + 'px';
-    };
-    label.setMap(map);
-    labels.set(country, label);
+      const label = new google.maps.OverlayView();
+      label.onAdd = function() {
+        const pane = this.getPanes().markerLayer;
+        if (pane) pane.appendChild(labelDiv);
+      };
+      label.draw = function() {
+        const projection = this.getProjection();
+        const position = projection.fromLatLngToDivPixel(new google.maps.LatLng(labelCoords.lat, labelCoords.lng));
+        labelDiv.style.left = position.x + 'px';
+        labelDiv.style.top = position.y + 'px';
+      };
+      label.setMap(map);
+      labels.set(labelCountry, label);
 
-    labelDiv.addEventListener('click', () => showCountryDetail(country));
+      labelDiv.addEventListener('click', () => showCountryDetail(labelCountry));
+    };
+
+    createLabel(country, coords, channelSet.size, brandSet.size);
   });
 
   document.getElementById('mapCapLeft').innerHTML = `총 <strong class="num">${countryData.size}</strong>개 국가 표시`;
