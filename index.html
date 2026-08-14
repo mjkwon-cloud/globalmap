@@ -519,6 +519,9 @@ function renderMap() {
   labels.forEach(label => label.setMap(null));
   labels.clear();
 
+  // Google Maps 캐시 무효화 및 재렌더링
+  google.maps.event.trigger(map, 'resize');
+
   // 국가별 그룹화 (다중 국가 처리)
   const countryData = new Map();
   allData.forEach(row => {
