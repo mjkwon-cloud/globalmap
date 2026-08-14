@@ -455,10 +455,20 @@ function loadCSVData(text) {
       throw new Error('유효한 데이터가 없습니다. CSV 형식을 확인하세요.');
     }
 
+    // 필터 초기화
+    document.getElementById('f_country').value = '';
+    document.getElementById('f_brand').value = '';
+    document.getElementById('f_channel').value = '';
+    document.querySelectorAll('.fbox').forEach(f => f.classList.remove('has-val'));
+    filteredData = [];
+
     console.log('Data loaded successfully:', allData);
     updateStats();
     renderMap();
     initializeFilters();
+    document.getElementById('filterSummaryTxt').innerHTML = '필터 없음';
+    document.getElementById('kpiFiltered').textContent = '0';
+    closeDetail();
     showToast(`✓ ${allData.length}개 행 로드 완료`, 'ok');
   } catch (err) {
     console.error('CSV Loading Error:', err);
