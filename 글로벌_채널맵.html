@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>글로벌 채널 맵 - 채널 분석 시스템</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#231A1D; --ink-soft:#6E6064; --paper:#FBF9F7; --card:#FFFFFF;
+  --cherry:#9E0B1E; --cherry-soft:#F5E7E9; --teal:#0E6E66; --teal-soft:#E3F0EE;
+  --line:#EAE2E0;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--paper);color:var(--ink);font-size:14px}
+.num{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}
+button{font:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--cherry);outline-offset:1px}
+
+header{position:sticky;top:0;z-index:30;background:rgba(251,249,247,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.hd-in{max-width:1400px;margin:0 auto;padding:13px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{font-weight:900;font-size:17px;letter-spacing:-.02em}
+.logo em{font-style:normal;color:var(--cherry)}
+.hd-sub{font-size:12px;color:var(--ink-soft);flex:1;min-width:200px}
+
+#excelBtn{border:1px solid var(--line);background:var(--card);border-radius:9px;padding:8px 13px;font-size:12.5px;font-weight:700;color:var(--ink);white-space:nowrap;display:flex;align-items:center;gap:6px}
+#excelBtn:hover{border-color:var(--cherry);color:var(--cherry);background:var(--cherry-soft)}
+#excelBtn svg{width:14px;height:14px}
+
+.toast{position:fixed;top:70px;right:22px;z-index:100;background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-size:12.5px;font-weight:500;box-shadow:0 8px 24px rgba(35,26,29,.25);display:flex;align-items:center;gap:8px;opacity:0;transform:translateY(-8px);transition:opacity .25s ease, transform .25s ease;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.err{background:var(--cherry)}
+.toast.ok{background:var(--teal)}
+
+.layout{max-width:1400px;margin:0 auto;padding:18px 22px 40px}
+
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:13px;margin-bottom:15px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:14px 16px}
+.kpi .lb{font-size:11px;font-weight:700;color:var(--ink-soft);letter-spacing:.04em}
+.kpi .v{font-size:23px;font-weight:600;margin-top:5px;letter-spacing:-.02em;color:var(--ink)}
+.kpi .v small{font-size:12px;color:var(--ink-soft);font-weight:500;margin-left:2px}
+.kpi.accent .v{color:var(--cherry)}
+
+.filter-panel{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:16px 18px;margin-bottom:15px}
+.filter-panel .p-hd{display:flex;align-items:baseline;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.filter-panel .p-hd h2{font-size:14.5px;font-weight:700}
+.filter-panel .p-hd .hint{font-size:11px;color:var(--ink-soft);margin-left:auto}
+.filter-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:980px){.filter-grid{grid-template-columns:repeat(2,1fr)}.kpis{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:560px){.filter-grid{grid-template-columns:1fr}}
+.fbox{position:relative}
+.fbox label{display:block;font-size:10.5px;font-weight:700;color:var(--ink-soft);margin-bottom:5px;letter-spacing:.02em}
+.fbox .input-wrap{position:relative}
+.fbox input{width:100%;border:1px solid var(--line);background:var(--paper);border-radius:9px;padding:9px 30px 9px 12px;font-size:12.5px;font-family:inherit;color:var(--ink)}
+.fbox input:focus{background:var(--card)}
+.fbox .clear-x{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:20px;height:20px;border-radius:50%;border:0;background:none;color:var(--ink-soft);display:none;align-items:center;justify-content:center;font-size:14px;line-height:1}
+.fbox.has-val .clear-x{display:flex}
+.fbox.has-val input{border-color:var(--cherry);background:var(--cherry-soft)}
+.fbox-dropdown{position:absolute;top:calc(100% + 5px);left:0;right:0;background:var(--card);border:1px solid var(--line);border-radius:9px;box-shadow:0 8px 24px rgba(35,26,29,.14);max-height:240px;overflow-y:auto;z-index:35;display:none}
+.fbox-dropdown.show{display:block}
+.fbox-dropdown button{display:flex;justify-content:space-between;gap:8px;width:100%;text-align:left;padding:7px 11px;background:none;border:0;font-size:12px;color:var(--ink)}
+.fbox-dropdown button:hover{background:var(--cherry-soft)}
+.fbox-dropdown button small{color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;font-size:10px;white-space:nowrap}
+
+.filter-actions{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+#clearFilters{border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:6px 12px;font-size:11.5px;font-weight:700;color:var(--cherry)}
+#clearFilters:hover{border-color:var(--cherry)}
+#filterSummaryTxt{font-size:11.5px;color:var(--ink-soft)}
+#filterSummaryTxt b{color:var(--cherry)}
+
+#mapOuter{position:relative;height:560px;margin:0 6px 6px;border-radius:9px;overflow:hidden;background:#EAF3F1}
+#gmap{position:absolute;inset:0}
+
+.glabel{
+  position:absolute; transform:translate(-50%,-100%); cursor:pointer; text-align:center;
+  background:rgba(255,255,255,.92); border:1px solid var(--line); border-radius:8px;
+  padding:4px 8px 5px; box-shadow:0 2px 6px rgba(35,26,29,.15); white-space:nowrap; user-select:none;
+  transition:box-shadow .15s ease, border-color .15s ease, opacity .15s ease;
+}
+.glabel:hover{border-color:var(--cherry);box-shadow:0 4px 12px rgba(158,11,30,.22)}
+.glabel.selected{border-color:var(--teal);box-shadow:0 4px 12px rgba(14,110,102,.22)}
+.glabel.dim{opacity:.22}
+.glabel .name{display:block;font-weight:700;font-size:10.5px;color:var(--ink);line-height:1.15}
+.glabel .big{display:block;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:13px;color:var(--cherry);line-height:1.2}
+.glabel.selected .big{color:var(--teal)}
+.glabel .pct{display:block;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:9.5px;color:var(--teal)}
+
+.map-caption{padding:8px 18px 14px;font-size:11px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line)}
+
+.gm-msg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--card);text-align:center;padding:24px;z-index:5}
+.gm-msg .spinner{width:20px;height:20px;border-radius:50%;border:2.5px solid var(--line);border-top-color:var(--cherry);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.gm-msg .t1{font-family:'Noto Sans KR',sans-serif;font-weight:700;font-size:15px;color:var(--ink)}
+.gm-msg .t2{max-width:44ch;line-height:1.6}
+
+.detail{padding:18px 18px 8px;min-height:420px;max-height:78vh;overflow-y:auto}
+.empty{height:100%;min-height:380px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;color:var(--ink-soft);padding:20px}
+.empty svg{width:30px;height:30px;stroke:var(--ink-soft);opacity:.55;margin-bottom:4px}
+.empty .t1{font-size:16px;font-weight:700;color:var(--ink)}
+.empty .t2{font-size:12px;max-width:28ch;line-height:1.5}
+
+.d-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.d-head h2{font-size:20px;font-weight:900}
+.region-tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.04em;color:var(--teal);background:var(--teal-soft);padding:3px 9px;border-radius:999px;margin-bottom:6px}
+.close-btn{background:none;border:0;cursor:pointer;color:var(--ink-soft);width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.close-btn:hover{background:var(--cherry-soft);color:var(--cherry)}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:16px}
+.mini-kpi{background:var(--paper);border-radius:10px;padding:9px 5px;text-align:center}
+.mini-kpi b{display:block;font-family:'IBM Plex Mono',monospace;font-size:16px;color:var(--ink)}
+.mini-kpi span{display:block;font-size:9.3px;color:var(--ink-soft);margin-top:2px}
+
+.section-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin:2px 0 9px}
+
+.channel-card{border:1px solid var(--line);border-radius:11px;padding:12px 13px;margin-bottom:9px;background:var(--paper);transition:border-color .15s ease, box-shadow .15s ease}
+.channel-card.match{border-color:var(--cherry);box-shadow:0 0 0 2px var(--cherry-soft)}
+.channel-card .row1{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:7px}
+.channel-card .customer{font-weight:700;font-size:13.5px;line-height:1.25}
+.channel-card .channel-name{font-size:11.5px;color:var(--ink-soft);margin-top:1px}
+.badge-row{display:flex;gap:5px;flex-wrap:wrap;flex-shrink:0}
+.badge{font-family:'IBM Plex Mono',monospace;font-size:9px;padding:3px 7px;border-radius:999px;white-space:nowrap}
+.badge.type{background:var(--cherry-soft);color:var(--cherry)}
+.badge.online{background:var(--teal-soft);color:var(--teal)}
+.badge.offline{background:#EFEAE8;color:var(--ink-soft)}
+.badge.match{background:var(--cherry);color:#fff}
+.brand-chips{display:flex;flex-wrap:wrap;gap:5px}
+.brand-chip{font-size:11px;background:var(--card);border:1px solid var(--line);padding:3px 8px;border-radius:7px;color:var(--ink);display:flex;align-items:center;gap:4px}
+.brand-chip.match{border-color:var(--cherry);background:var(--cherry-soft);font-weight:700}
+
+.grid{display:grid;grid-template-columns:minmax(0,1.62fr) minmax(320px,1fr);gap:16px;align-items:start}
+@media (max-width:980px){.grid{grid-template-columns:1fr}}
+
+.panel{background:var(--card);border:1px solid var(--line);border-radius:13px;overflow:hidden}
+.p-hd{display:flex;align-items:baseline;gap:10px;padding:14px 18px 0;flex-wrap:wrap}
+.p-hd h2{font-size:14.5px;font-weight:700}
+.p-hd .hint{font-size:11px;color:var(--ink-soft);margin-left:auto}
+.legend{display:flex;gap:14px;font-size:11px;color:var(--ink-soft);padding:8px 18px 12px;flex-wrap:wrap}
+.legend .sw{display:inline-flex;align-items:center;gap:5px}
+.legend .box{width:10px;height:10px;border-radius:3px;display:inline-block}
+
+::-webkit-scrollbar{width:8px}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+::-webkit-scrollbar-track{background:transparent}
+
+footer{max-width:1400px;margin:0 auto;padding:0 22px 28px;font-size:11px;color:var(--ink-soft)}
+</style>
+</head>
+<body>
+<header><div class="hd-in">
+  <div class="logo">글로벌 <em>채널 맵</em></div>
+  <div class="hd-sub" id="hdSub">전체 데이터 · 실시간 분석</div>
+  <button id="excelBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+    CSV 불러오기
+  </button>
+  <input type="file" id="excelFile" accept=".csv,.xlsx" style="display:none">
+</div></header>
+
+<div class="toast" id="toast"></div>
+
+<div class="layout">
+  <section class="kpis" id="kpis">
+    <div class="kpi"><div class="lb">전체 채널</div><div class="v num" id="kpiChannels">0</div></div>
+    <div class="kpi"><div class="lb">전체 국가</div><div class="v num" id="kpiCountries">0</div></div>
+    <div class="kpi"><div class="lb">전체 브랜드</div><div class="v num" id="kpiBrands">0</div></div>
+    <div class="kpi"><div class="lb">전체 거래처</div><div class="v num" id="kpiCustomers">0</div></div>
+    <div class="kpi accent"><div class="lb">필터 결과</div><div class="v num" id="kpiFiltered">0</div></div>
+  </section>
+
+  <section class="filter-panel">
+    <div class="p-hd"><h2>검색 필터</h2><span class="hint">AND 조건으로 동시 적용됩니다 · 자동완성 클릭 가능</span></div>
+    <div class="filter-grid">
+      <div class="fbox" data-dim="country">
+        <label for="f_country">국가명</label>
+        <div class="input-wrap">
+          <input type="text" id="f_country" placeholder="예: 스웨덴, 독일, 프랑스...">
+          <button class="clear-x" data-clear="country">×</button>
+        </div>
+        <div class="fbox-dropdown" id="dd_country"></div>
+      </div>
+      <div class="fbox" data-dim="brand">
+        <label for="f_brand">브랜드명</label>
+        <div class="input-wrap">
+          <input type="text" id="f_brand" placeholder="예: COSRX, PURITO...">
+          <button class="clear-x" data-clear="brand">×</button>
+        </div>
+        <div class="fbox-dropdown" id="dd_brand"></div>
+      </div>
+      <div class="fbox" data-dim="channel">
+        <label for="f_channel">채널명</label>
+        <div class="input-wrap">
+          <input type="text" id="f_channel" placeholder="예: DM, Boots, Luxplus...">
+          <button class="clear-x" data-clear="channel">×</button>
+        </div>
+        <div class="fbox-dropdown" id="dd_channel"></div>
+      </div>
+    </div>
+    <div class="filter-actions">
+      <button id="clearFilters">필터 초기화</button>
+      <span id="filterSummaryTxt">필터 없음</span>
+    </div>
+  </section>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="p-hd"><h2>국가별 입점 현황 (Google Maps)</h2><span class="hint">지도 드래그·확대 가능 · 국가 클릭</span></div>
+      <div class="legend">
+        <span class="sw"><span class="box" style="background:#EFD9CE;border:1px solid #C99"></span>입점 데이터 있음</span>
+        <span class="sw"><span class="box" style="background:#E4DEDB"></span>데이터 없음</span>
+      </div>
+      <div id="mapOuter">
+        <div id="gmap"></div>
+        <div class="gm-msg" id="gmMsg">
+          <div class="spinner"></div>
+          <span id="gmMsgText">Google Maps 초기화 중…</span>
+        </div>
+      </div>
+      <div class="map-caption">
+        <span id="mapCapLeft">총 <strong class="num">0</strong>개 국가 표시</span>
+        <span>Source: Channel Map Data</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="detail" id="detailPanel">
+        <div class="empty" id="emptyState">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2c2.5 2.7 4 6.4 4 10s-1.5 7.3-4 10c-2.5-2.7-4-6.4-4-10s1.5-7.3 4-10z"/></svg>
+          <div class="t1">국가를 선택해 보세요</div>
+          <div class="t2">지도에서 국가를 클릭하거나 검색 필터를 사용해 상세 정보를 확인할 수 있습니다.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>단위: 채널·브랜드·거래처는 고유 개수 기준 · 지도: Google Maps Platform · CSV 파일을 불러오면 지도·필터·상세 패널이 즉시 갱신됩니다</footer>
+
+<!-- Google Maps API 로드 -->
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBwY4ZIZELdvHBLBqQDI6mRzbv07p_7Jss"></script>
+<script>
+// 국가 좌표 맵 (CSV 데이터의 국가명과 일치하도록 한글로 통일)
+const COUNTRY_COORDS = {
+  '스웨덴': { lat: 60.128161, lng: 18.643501 },
+  '영국': { lat: 55.378051, lng: -3.435973 },
+  '덴마크': { lat: 56.26392, lng: 9.501785 },
+  '불가리아': { lat: 42.733883, lng: 25.48583 },
+  '북마케도니아': { lat: 41.608635, lng: 21.745275 },
+  '체코': { lat: 49.817492, lng: 15.472962 },
+  '헝가리': { lat: 47.162494, lng: 19.503304 },
+  '세르비아': { lat: 44.016521, lng: 21.005859 },
+  '독일': { lat: 51.165691, lng: 10.451526 },
+  '크로아티아': { lat: 45.1, lng: 15.2 },
+  '슬로바키아': { lat: 48.669026, lng: 19.699024 },
+  '네덜란드': { lat: 52.132633, lng: 5.291266 },
+  '노르웨이': { lat: 60.472024, lng: 8.468946 },
+  '핀란드': { lat: 61.92410500000001, lng: 25.748151 },
+  '이탈리아': { lat: 41.871940, lng: 12.567380 },
+  '캐나다': { lat: 56.130366, lng: -106.346771 },
+  '호주': { lat: -25.2744, lng: 133.7751 },
+  '뉴질랜드': { lat: -40.900557, lng: 174.885971 },
+  '프랑스': { lat: 46.227638, lng: 2.213749 },
+  '포르투갈': { lat: 39.399872, lng: -8.224454 },
+  '스페인': { lat: 40.463667, lng: -3.74922 },
+  '폴란드': { lat: 51.919438, lng: 19.145136 },
+  '보스니아 헤르체고비나': { lat: 43.915886, lng: 17.679076 },
+  '슬로베니아': { lat: 46.151925, lng: 14.995463 },
+  '안도라': { lat: 42.5462, lng: 1.5211 }
+};
+
+let allData = [];
+let filteredData = [];
+let map = null;
+let labels = new Map();
+let selectedCountry = null;
+
+// Google Map 초기화
+function initMap() {
+  map = new google.maps.Map(document.getElementById('gmap'), {
+    zoom: 3.5,
+    center: { lat: 54.5973, lng: 15.2551 },
+    styles: [
+      { elementType: 'geometry', stylers: [{ color: '#f5f5f5' }] },
+      { elementType: 'labels.text.stroke', stylers: [{ color: '#ffffff' }] },
+      { elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
+      { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#e9e9e9' }] }
+    ]
+  });
+  document.getElementById('gmMsg').style.display = 'none';
+}
+
+// CSV 파싱 함수 (쉼표/탭 모두 지원)
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+
+  // 구분자 자동 감지 (첫 라인에서)
+  let delimiter = ',';
+  if (lines[0].includes('\t')) delimiter = '\t';
+
+  // 헤더 파싱 (이스케이프 처리)
+  const headerLine = lines[0];
+  const headers = parseCSVLine(headerLine, delimiter);
+
+  console.log('Headers:', headers);
+  console.log('Delimiter:', delimiter === ',' ? 'comma' : 'tab');
+
+  const data = [];
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    const values = parseCSVLine(line, delimiter);
+    const row = {};
+
+    headers.forEach((h, idx) => {
+      row[h] = values[idx] || '';
+    });
+
+    if (row['채널'] || row['Channel']) {
+      data.push(row);
+    }
+  }
+
+  console.log(`Parsed ${data.length} rows`);
+  return data;
+}
+
+// CSV 라인 파싱 (쌍따옴표 처리)
+function parseCSVLine(line, delimiter) {
+  const result = [];
+  let current = '';
+  let insideQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    const nextChar = line[i + 1];
+
+    if (char === '"') {
+      if (insideQuotes && nextChar === '"') {
+        current += '"';
+        i++;
+      } else {
+        insideQuotes = !insideQuotes;
+      }
+    } else if (char === delimiter && !insideQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  result.push(current.trim());
+  return result;
+}
+
+// CSV 데이터 로드
+function loadCSVData(text) {
+  try {
+    allData = parseCSV(text);
+
+    if (allData.length === 0) {
+      throw new Error('유효한 데이터가 없습니다. CSV 형식을 확인하세요.');
+    }
+
+    console.log('Data loaded successfully:', allData);
+    updateStats();
+    renderMap();
+    initializeFilters();
+    showToast(`✓ ${allData.length}개 행 로드 완료`, 'ok');
+  } catch (err) {
+    console.error('CSV Loading Error:', err);
+    showToast(`✗ 오류: ${err.message}`, 'err');
+  }
+}
+
+function updateStats() {
+  const uniqueChannels = new Set(allData.map(r => r['채널'] || r['Channel']).filter(Boolean));
+  const uniqueCountries = new Set();
+  const uniqueBrands = new Set();
+  const uniqueCustomers = new Set();
+
+  allData.forEach(r => {
+    // 국가 필드명 유연 처리
+    const countries = r['국가'] || r['Country'] || '';
+    if (countries) {
+      countries.split(',').forEach(c => {
+        const c_trim = c.trim();
+        if (c_trim) uniqueCountries.add(c_trim);
+      });
+    }
+
+    // 브랜드 필드명 유연 처리
+    const brands = r['브랜드'] || r['Brand'] || '';
+    if (brands) {
+      brands.split(',').forEach(b => {
+        const b_trim = b.trim();
+        if (b_trim) uniqueBrands.add(b_trim);
+      });
+    }
+
+    // 거래처 필드명 유연 처리
+    const customer = r['본사 거래처 리스트'] || r['법인 거래처 리스트'] || r['Customer'];
+    if (customer) uniqueCustomers.add(customer);
+  });
+
+  document.getElementById('kpiChannels').textContent = uniqueChannels.size;
+  document.getElementById('kpiCountries').textContent = uniqueCountries.size;
+  document.getElementById('kpiBrands').textContent = uniqueBrands.size;
+  document.getElementById('kpiCustomers').textContent = uniqueCustomers.size;
+}
+
+function renderMap() {
+  if (!map) return;
+
+  // 기존 라벨 제거
+  labels.forEach(label => label.setMap(null));
+  labels.clear();
+
+  // 국가별 그룹화 (다중 국가 처리)
+  const countryData = new Map();
+  allData.forEach(row => {
+    const countriesStr = row['국가'] || row['Country'] || '';
+    if (!countriesStr) return;
+
+    countriesStr.split(',').forEach(c => {
+      const country = c.trim();
+      if (!country) return;
+      if (!countryData.has(country)) {
+        countryData.set(country, []);
+      }
+      countryData.get(country).push(row);
+    });
+  });
+
+  console.log(`Rendering ${countryData.size} countries`);
+
+  // 각 국가마다 라벨 추가
+  countryData.forEach((rows, country) => {
+    const coords = COUNTRY_COORDS[country];
+    if (!coords) {
+      console.warn(`No coordinates for: ${country}`);
+      return;
+    }
+
+    const channelSet = new Set();
+    const brandSet = new Set();
+
+    rows.forEach(r => {
+      const ch = r['채널'] || r['Channel'];
+      if (ch) channelSet.add(ch);
+
+      const br = r['브랜드'] || r['Brand'] || '';
+      if (br) {
+        br.split(',').forEach(b => {
+          const b_trim = b.trim();
+          if (b_trim) brandSet.add(b_trim);
+        });
+      }
+    });
+
+    const labelDiv = document.createElement('div');
+    labelDiv.className = 'glabel';
+    labelDiv.innerHTML = `
+      <span class="name">${country}</span>
+      <span class="big">${channelSet.size}</span>
+      <span class="pct">${brandSet.size} 브랜드</span>
+    `;
+
+    const label = new google.maps.OverlayView();
+    label.onAdd = function() {
+      const pane = this.getPanes().markerLayer;
+      pane.appendChild(labelDiv);
+    };
+    label.draw = function() {
+      const projection = this.getProjection();
+      const position = projection.fromLatLngToDivPixel(new google.maps.LatLng(coords.lat, coords.lng));
+      labelDiv.style.left = position.x + 'px';
+      labelDiv.style.top = position.y + 'px';
+    };
+    label.setMap(map);
+    labels.set(country, label);
+
+    labelDiv.addEventListener('click', () => showCountryDetail(country));
+  });
+
+  document.getElementById('mapCapLeft').innerHTML = `총 <strong class="num">${countryData.size}</strong>개 국가 표시`;
+}
+
+function showCountryDetail(country) {
+  selectedCountry = country;
+
+  // 해당 국가가 포함된 모든 행 찾기
+  const countryRows = allData.filter(r => {
+    const countriesStr = r['국가'] || r['Country'] || '';
+    return countriesStr.split(',').some(c => c.trim() === country);
+  });
+
+  if (countryRows.length === 0) {
+    console.warn(`No data for country: ${country}`);
+    return;
+  }
+
+  const channels = new Map();
+  countryRows.forEach(r => {
+    const ch = r['채널'] || r['Channel'] || 'Unknown';
+    if (!channels.has(ch)) {
+      channels.set(ch, []);
+    }
+    channels.get(ch).push(r);
+  });
+
+  const brandSet = new Set();
+  countryRows.forEach(r => {
+    const br = r['브랜드'] || r['Brand'] || '';
+    if (br) {
+      br.split(',').forEach(b => {
+        const b_trim = b.trim();
+        if (b_trim) brandSet.add(b_trim);
+      });
+    }
+  });
+
+  let html = `
+    <div class="d-head">
+      <div>
+        <span class="region-tag">${country}</span>
+        <h2>${country}</h2>
+      </div>
+      <button class="close-btn" onclick="closeDetail()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="kpi-grid">
+      <div class="mini-kpi"><b class="num">${channels.size}</b><span>채널</span></div>
+      <div class="mini-kpi"><b class="num">${brandSet.size}</b><span>브랜드</span></div>
+      <div class="mini-kpi"><b class="num">${countryRows.length}</b><span>데이터</span></div>
+    </div>
+    <div class="section-label">채널 목록</div>
+  `;
+
+  channels.forEach((rows, chName) => {
+    const brands = new Set();
+    rows.forEach(r => {
+      const br = r['브랜드'] || r['Brand'] || '';
+      if (br) {
+        br.split(',').forEach(b => {
+          const b_trim = b.trim();
+          if (b_trim) brands.add(b_trim);
+        });
+      }
+    });
+
+    const type = rows[0]['유형'] || rows[0]['Type'] || 'N/A';
+
+    html += `
+      <div class="channel-card">
+        <div class="row1">
+          <div>
+            <div class="customer">${chName}</div>
+            <div class="channel-name">${type}</div>
+          </div>
+          <div class="badge-row">
+            <span class="badge type">${type}</span>
+          </div>
+        </div>
+        <div class="brand-chips">
+          ${Array.from(brands).sort().map(b => `<span class="brand-chip">${b}</span>`).join('')}
+        </div>
+      </div>
+    `;
+  });
+
+  document.getElementById('detailPanel').innerHTML = html;
+}
+
+function closeDetail() {
+  selectedCountry = null;
+  document.getElementById('detailPanel').innerHTML = `
+    <div class="empty" id="emptyState">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2c2.5 2.7 4 6.4 4 10s-1.5 7.3-4 10c-2.5-2.7-4-6.4-4-10s1.5-7.3 4-10z"/></svg>
+      <div class="t1">국가를 선택해 보세요</div>
+      <div class="t2">지도에서 국가를 클릭하거나 검색 필터를 사용해 상세 정보를 확인할 수 있습니다.</div>
+    </div>
+  `;
+}
+
+function initializeFilters() {
+  const countries = new Set();
+  const brands = new Set();
+  const channels = new Set();
+
+  allData.forEach(r => {
+    // 국가
+    const countriesStr = r['국가'] || r['Country'] || '';
+    if (countriesStr) {
+      countriesStr.split(',').forEach(c => {
+        const c_trim = c.trim();
+        if (c_trim) countries.add(c_trim);
+      });
+    }
+
+    // 브랜드
+    const brandsStr = r['브랜드'] || r['Brand'] || '';
+    if (brandsStr) {
+      brandsStr.split(',').forEach(b => {
+        const b_trim = b.trim();
+        if (b_trim) brands.add(b_trim);
+      });
+    }
+
+    // 채널
+    const ch = r['채널'] || r['Channel'];
+    if (ch) channels.add(ch);
+  });
+
+  console.log(`Filter data: ${countries.size} countries, ${brands.size} brands, ${channels.size} channels`);
+
+  // 드롭다운 채우기
+  ['country', 'brand', 'channel'].forEach(dim => {
+    const ddId = `dd_${dim}`;
+    const data = dim === 'country' ? countries : dim === 'brand' ? brands : channels;
+    const dd = document.getElementById(ddId);
+    dd.innerHTML = Array.from(data).sort().map(item => {
+      const escaped = item.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      return `
+        <button onclick="applyFilter('${dim}', '${escaped}')">
+          <span>${item}</span> <small>${item.length}</small>
+        </button>
+      `;
+    }).join('');
+  });
+
+  setupFilterListeners();
+}
+
+function setupFilterListeners() {
+  ['country', 'brand', 'channel'].forEach(dim => {
+    const input = document.getElementById(`f_${dim}`);
+    const fbox = input.closest('.fbox');
+    const dd = document.getElementById(`dd_${dim}`);
+    const clearBtn = fbox.querySelector('.clear-x');
+
+    input.addEventListener('input', (e) => {
+      const val = e.target.value.toLowerCase();
+      const buttons = dd.querySelectorAll('button');
+      const hasValue = val.length > 0;
+
+      fbox.classList.toggle('has-val', hasValue);
+      buttons.forEach(btn => {
+        const text = btn.querySelector('span').textContent.toLowerCase();
+        btn.style.display = text.includes(val) ? 'flex' : 'none';
+      });
+      dd.classList.toggle('show', hasValue && val.length > 0);
+    });
+
+    input.addEventListener('focus', () => {
+      if (input.value.length > 0) dd.classList.add('show');
+    });
+
+    input.addEventListener('blur', () => {
+      setTimeout(() => dd.classList.remove('show'), 200);
+    });
+
+    clearBtn.addEventListener('click', () => {
+      input.value = '';
+      fbox.classList.remove('has-val');
+      dd.classList.remove('show');
+      applyFilter(dim, '');
+    });
+  });
+}
+
+function applyFilter(dim, value) {
+  const input = document.getElementById(`f_${dim}`);
+  input.value = value;
+
+  if (value) {
+    input.closest('.fbox').classList.add('has-val');
+  }
+
+  const country = document.getElementById('f_country').value;
+  const brand = document.getElementById('f_brand').value;
+  const channel = document.getElementById('f_channel').value;
+
+  filteredData = allData.filter(r => {
+    // 국가 필터
+    if (country) {
+      const countriesStr = r['국가'] || r['Country'] || '';
+      const countries = countriesStr.split(',').map(c => c.trim());
+      if (!countries.includes(country)) return false;
+    }
+
+    // 브랜드 필터
+    if (brand) {
+      const brandsStr = r['브랜드'] || r['Brand'] || '';
+      const brands = brandsStr.split(',').map(b => b.trim());
+      if (!brands.includes(brand)) return false;
+    }
+
+    // 채널 필터
+    if (channel) {
+      const ch = r['채널'] || r['Channel'];
+      if (ch !== channel) return false;
+    }
+
+    return true;
+  });
+
+  document.getElementById('kpiFiltered').textContent = filteredData.length;
+
+  const summary = [country, brand, channel].filter(Boolean);
+  const txt = summary.length === 0
+    ? '필터 없음'
+    : `필터 적용: <b>${summary.join(' · ')}</b> (${filteredData.length}개)`;
+  document.getElementById('filterSummaryTxt').innerHTML = txt;
+
+  if (filteredData.length > 0 && country) {
+    showCountryDetail(country);
+  }
+}
+
+document.getElementById('clearFilters').addEventListener('click', () => {
+  document.getElementById('f_country').value = '';
+  document.getElementById('f_brand').value = '';
+  document.getElementById('f_channel').value = '';
+  document.querySelectorAll('.fbox').forEach(f => f.classList.remove('has-val'));
+  filteredData = [];
+  document.getElementById('kpiFiltered').textContent = '0';
+  document.getElementById('filterSummaryTxt').textContent = '필터 없음';
+  closeDetail();
+});
+
+document.getElementById('excelBtn').addEventListener('click', () => {
+  document.getElementById('excelFile').click();
+});
+
+document.getElementById('excelFile').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  if (!file.name.endsWith('.csv') && !file.name.endsWith('.tsv')) {
+    showToast('✗ CSV 또는 TSV 파일만 지원됩니다', 'err');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    try {
+      let text = event.target.result;
+
+      // UTF-8 BOM 제거
+      if (text.charCodeAt(0) === 0xFEFF) {
+        text = text.slice(1);
+      }
+
+      console.log('File loaded:', file.name, text.length, 'bytes');
+      console.log('First 200 chars:', text.substring(0, 200));
+
+      loadCSVData(text);
+    } catch (err) {
+      console.error('File read error:', err);
+      showToast('✗ 파일 로드 실패: ' + err.message, 'err');
+    }
+  };
+
+  reader.onerror = () => {
+    showToast('✗ 파일 읽기 오류', 'err');
+  };
+
+  reader.readAsText(file, 'utf-8');
+});
+
+function showToast(msg, type = 'ok') {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = `toast show ${type}`;
+  setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+// 페이지 로드 시 지도 초기화
+window.addEventListener('load', () => {
+  initMap();
+});
+
+// 초기 데이터 로드 (빈 상태)
+updateStats();
+</script>
+</body>
+</html>
