@@ -515,19 +515,16 @@ function updateStats() {
 function renderMap() {
   if (!map) return;
 
-  // 기존 라벨 제거
-  labels.forEach(label => label.setMap(null));
+  // 기존 라벨 완전 제거
+  labels.forEach(label => {
+    label.setMap(null);
+  });
   labels.clear();
 
-  // Google Maps 캐시 무효화 - 지도 팬 및 줌 변경
-  const currentZoom = map.getZoom();
-  const currentCenter = map.getCenter();
-
+  // Google Maps 캐시 완전 무효화
   setTimeout(() => {
     google.maps.event.trigger(map, 'resize');
-    if (currentCenter) map.panTo(currentCenter);
-    if (currentZoom) map.setZoom(currentZoom);
-  }, 0);
+  }, 10);
 
   // 국가별 그룹화 (다중 국가 처리)
   const countryData = new Map();
@@ -600,6 +597,11 @@ function renderMap() {
 
     createLabel(country, coords, channelSet.size, brandSet.size);
   });
+
+  // Google Maps 레이어 강제 재그리기
+  setTimeout(() => {
+    google.maps.event.trigger(map, 'resize');
+  }, 50);
 
   document.getElementById('mapCapLeft').innerHTML = `총 <strong class="num">${countryData.size}</strong>개 국가 표시`;
 }
