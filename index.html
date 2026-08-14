@@ -806,8 +806,15 @@ function applyFilter(dim, value) {
     : `필터 적용: <b>${summary.join(' · ')}</b> (${filteredData.length}개)`;
   document.getElementById('filterSummaryTxt').innerHTML = txt;
 
-  if (filteredData.length > 0 && country) {
-    showCountryDetail(country);
+  if (filteredData.length > 0) {
+    if (country) {
+      showCountryDetail(country);
+    } else if (filteredData.length > 0) {
+      const firstCountry = filteredData[0]['국가'] || filteredData[0]['Country'] || '';
+      if (firstCountry) {
+        showCountryDetail(firstCountry);
+      }
+    }
   }
 }
 
