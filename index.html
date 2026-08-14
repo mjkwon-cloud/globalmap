@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      🌍 글로벌 채널맵 (Global Channel Map) | 모듈화 버전
+    </title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          'Helvetica Neue', Arial, sans-serif;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 40px 30px;
+        text-align: center;
+      }
+
+      header h1 {
+        font-size: 32px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      header p {
+        font-size: 14px;
+        opacity: 0.9;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        padding: 30px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+      }
+
+      .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        text-align: center;
+      }
+
+      .stat-card label {
+        display: block;
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 8px;
+        font-weight: 600;
+      }
+
+      .stat-card .value {
+        font-size: 28px;
+        font-weight: bold;
+        color: #667eea;
+      }
+
+      .main-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        padding: 30px;
+      }
+
+      .filters-section {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .filter-group label {
+        font-weight: 600;
+        color: #333;
+        font-size: 14px;
+      }
+
+      .filter-group input {
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+
+      .filter-group input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      .filter-buttons {
+        display: flex;
+        gap: 10px;
+      }
+
+      button {
+        padding: 10px 16px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-primary {
+        background: #667eea;
+        color: white;
+        flex: 1;
+      }
+
+      .btn-primary:hover {
+        background: #5568d3;
+        transform: translateY(-2px);
+      }
+
+      .btn-secondary {
+        background: #e9ecef;
+        color: #333;
+        flex: 1;
+      }
+
+      .btn-secondary:hover {
+        background: #dee2e6;
+      }
+
+      .csv-upload {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .csv-upload input[type='file'] {
+        display: none;
+      }
+
+      .csv-upload label {
+        padding: 10px 16px;
+        background: #28a745;
+        color: white;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+      }
+
+      .csv-upload label:hover {
+        background: #218838;
+      }
+
+      #mapContainer {
+        background: #e9ecef;
+        border-radius: 8px;
+        overflow: hidden;
+        min-height: 500px;
+      }
+
+      .info-panel {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+      }
+
+      .info-panel h3 {
+        margin-bottom: 15px;
+        color: #333;
+      }
+
+      .info-panel p {
+        margin: 8px 0;
+        font-size: 14px;
+        color: #666;
+      }
+
+      .toast {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 16px 24px;
+        background: #28a745;
+        color: white;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        animation: slideIn 0.3s ease;
+        z-index: 1000;
+      }
+
+      .toast.error {
+        background: #dc3545;
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .main-content {
+          grid-template-columns: 1fr;
+        }
+
+        header h1 {
+          font-size: 24px;
+        }
+
+        .stats {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <header>
+        <h1>🌍 글로벌 채널맵</h1>
+        <p>K-Beauty 글로벌 채널 분석 시스템 (모듈화 버전)</p>
+      </header>
+
+      <div class="stats">
+        <div class="stat-card">
+          <label>전체 채널</label>
+          <div class="value" id="totalChannels">0</div>
+        </div>
+        <div class="stat-card">
+          <label>전체 국가</label>
+          <div class="value" id="totalCountries">0</div>
+        </div>
+        <div class="stat-card">
+          <label>전체 브랜드</label>
+          <div class="value" id="totalBrands">0</div>
+        </div>
+        <div class="stat-card">
+          <label>전체 거래처</label>
+          <div class="value" id="totalCustomers">0</div>
+        </div>
+        <div class="stat-card">
+          <label>필터 결과</label>
+          <div class="value" id="filteredResults">0</div>
+        </div>
+      </div>
+
+      <div class="main-content">
+        <div class="filters-section">
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <div class="csv-upload" style="flex: 1;">
+              <input
+                type="file"
+                id="csvFile"
+                accept=".csv"
+                aria-label="CSV 파일 선택"
+              />
+              <label for="csvFile">📥 CSV 불러오기</label>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <label>국가명</label>
+            <input
+              type="text"
+              id="countryFilter"
+              placeholder="예: 스웨덴, 독일, 프랑스..."
+            />
+          </div>
+
+          <div class="filter-group">
+            <label>브랜드명</label>
+            <input
+              type="text"
+              id="brandFilter"
+              placeholder="예: COSRX, PURITO..."
+            />
+          </div>
+
+          <div class="filter-group">
+            <label>채널명</label>
+            <input
+              type="text"
+              id="channelFilter"
+              placeholder="예: DM, Boots, Luxplus..."
+            />
+          </div>
+
+          <div class="filter-buttons">
+            <button class="btn-primary" onclick="applyFilters()">
+              🔍 필터 적용
+            </button>
+            <button class="btn-secondary" onclick="resetFilters()">
+              🔄 초기화
+            </button>
+          </div>
+
+          <div class="info-panel">
+            <h3>ℹ️ 정보</h3>
+            <p id="infoText">데이터를 불러와주세요.</p>
+          </div>
+        </div>
+
+        <div>
+          <div id="mapContainer"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 모듈 스크립트 -->
+    <script src="js/csv-parser.js"></script>
+    <script src="js/maps-module.js"></script>
+
+    <!-- Google Maps API -->
+    <script
+      async
+      defer
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBwY4ZIZELdvHBLBqQDI6mRzbv07p_7Jss"
+    ></script>
+
+    <!-- 메인 애플리케이션 -->
+    <script>
+      let csvParser = new CSVParser();
+      let mapsModule = null;
+      let allData = [];
+      let filteredData = [];
+
+      // Google Maps 로드 대기
+      window.addEventListener('load', () => {
+        try {
+          mapsModule = new MapsModule('mapContainer');
+          if (mapsModule.initMap()) {
+            showToast('지도 준비 완료');
+          }
+        } catch (error) {
+          showToast(`지도 초기화 오류: ${error.message}`, 'error');
+        }
+      });
+
+      // CSV 파일 선택
+      document.getElementById('csvFile').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+          showToast('CSV 파일 처리 중...');
+          allData = await csvParser.parseFile(file);
+          filteredData = [...allData];
+
+          updateStatistics();
+          renderMap(allData);
+          showToast(`✅ ${allData.length}개 데이터 로드 완료!`);
+        } catch (error) {
+          showToast(`CSV 오류: ${error.message}`, 'error');
+        }
+      });
+
+      // 필터 적용
+      function applyFilters() {
+        const filters = {
+          country: document.getElementById('countryFilter').value.trim(),
+          brand: document.getElementById('brandFilter').value.trim(),
+          channel: document.getElementById('channelFilter').value.trim(),
+        };
+
+        filteredData = csvParser.filter(filters);
+        updateStatistics();
+        renderMap(filteredData);
+
+        const activeFilters = Object.values(filters).filter((v) => v).length;
+        showToast(
+          `✅ ${filteredData.length}개 데이터 필터링 완료 (활성 필터: ${activeFilters})`
+        );
+      }
+
+      // 필터 초기화
+      function resetFilters() {
+        document.getElementById('countryFilter').value = '';
+        document.getElementById('brandFilter').value = '';
+        document.getElementById('channelFilter').value = '';
+
+        filteredData = [...allData];
+        updateStatistics();
+        renderMap(allData);
+        mapsModule.resetView();
+        showToast('필터 초기화 완료');
+      }
+
+      // 지도 렌더링
+      function renderMap(data) {
+        if (!mapsModule || !mapsModule.isInitialized()) {
+          showToast('지도를 먼저 초기화하세요.', 'error');
+          return;
+        }
+
+        // 국가별 데이터 그룹화
+        const dataByCountry = {};
+        data.forEach((row) => {
+          const country = row['국가'] || row['Country'] || '';
+          if (!country) return;
+
+          if (!dataByCountry[country]) {
+            dataByCountry[country] = {
+              country,
+              channels: 0,
+              brands: new Set(),
+              customers: new Set(),
+            };
+          }
+
+          dataByCountry[country].channels++;
+
+          const brand = row['브랜드'] || row['Brand'] || '';
+          if (brand) dataByCountry[country].brands.add(brand);
+
+          const customers =
+            (row['본사 거래처 리스트'] || row['Headquarters Customers'] || '') +
+            ' ' +
+            (row['법인 거래처 리스트'] || row['Corporate Customers'] || '');
+          customers.split(/[,;]/).forEach((c) => {
+            const trimmed = c.trim();
+            if (trimmed) dataByCountry[country].customers.add(trimmed);
+          });
+        });
+
+        // 마커 추가
+        const countryDataArray = Object.values(dataByCountry).map((item) => ({
+          country: item.country,
+          channels: item.channels,
+          brands: Array.from(item.brands),
+          customers: Array.from(item.customers),
+        }));
+
+        mapsModule.addAllMarkers(countryDataArray, (country, data) => {
+          updateInfoPanel(country, data);
+        });
+      }
+
+      // 통계 업데이트
+      function updateStatistics() {
+        const allStats = csvParser.getStatistics(allData);
+        const filteredStats = csvParser.getStatistics(filteredData);
+
+        document.getElementById('totalChannels').textContent = allStats.channels;
+        document.getElementById('totalCountries').textContent =
+          allStats.countries;
+        document.getElementById('totalBrands').textContent = allStats.brands;
+        document.getElementById('totalCustomers').textContent =
+          allStats.customers;
+        document.getElementById('filteredResults').textContent =
+          filteredStats.channels;
+      }
+
+      // 정보 패널 업데이트
+      function updateInfoPanel(country, data) {
+        const panel = document.querySelector('.info-panel');
+        const html = `
+          <h3>${country}</h3>
+          <p><strong>채널 수:</strong> ${data.channels}</p>
+          <p><strong>주요 브랜드:</strong> ${data.brands.slice(0, 5).join(', ')}</p>
+          <p><strong>거래처:</strong> ${data.customers.slice(0, 5).join(', ')}</p>
+        `;
+        panel.innerHTML = html;
+      }
+
+      // 토스트 메시지
+      function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type === 'error' ? 'error' : ''}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+          toast.remove();
+        }, 3000);
+      }
+    </script>
+  </body>
+</html>
