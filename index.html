@@ -462,6 +462,22 @@ function loadCSVData(text) {
     document.querySelectorAll('.fbox').forEach(f => f.classList.remove('has-val'));
     filteredData = [];
 
+    // Google Maps 재초기화 (캐시 무효화)
+    if (map) {
+      // 지도 컨테이너 비우기
+      const gmap = document.getElementById('gmap');
+      gmap.innerHTML = '';
+
+      // map 재생성
+      map = new google.maps.Map(gmap, {
+        zoom: 3.5,
+        center: { lat: 54.5260, lng: 15.2551 },
+        mapTypeControl: true,
+        fullscreenControl: true,
+        gestureHandling: 'greedy',
+      });
+    }
+
     console.log('Data loaded successfully:', allData);
     updateStats();
     renderMap();
