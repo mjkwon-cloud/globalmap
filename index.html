@@ -519,8 +519,15 @@ function renderMap() {
   labels.forEach(label => label.setMap(null));
   labels.clear();
 
-  // Google Maps 캐시 무효화 및 재렌더링
-  google.maps.event.trigger(map, 'resize');
+  // Google Maps 캐시 무효화 - 지도 팬 및 줌 변경
+  const currentZoom = map.getZoom();
+  const currentCenter = map.getCenter();
+
+  setTimeout(() => {
+    google.maps.event.trigger(map, 'resize');
+    if (currentCenter) map.panTo(currentCenter);
+    if (currentZoom) map.setZoom(currentZoom);
+  }, 0);
 
   // 국가별 그룹화 (다중 국가 처리)
   const countryData = new Map();
